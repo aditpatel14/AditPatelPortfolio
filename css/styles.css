@@ -31,7 +31,9 @@ div {
   max-width: 600px;
   padding-right: 10px;
 }
-
+ul{
+  padding-inline-start: 16px;
+}
 li {
   margin: 0 0 3px 0;
   list-style-type: none;
