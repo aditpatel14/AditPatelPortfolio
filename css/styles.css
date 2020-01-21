@@ -71,3 +71,11 @@ th {
 
 tr:nth-child(even) {
 }
+
+
+.entry {
+  color: #7f8c8d;
+  font-size: 10px;
+  margin-top: 0px;
+  margin-bottom: 5px;
+}
