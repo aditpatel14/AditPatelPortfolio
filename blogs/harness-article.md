@@ -1,0 +1,59 @@
+# Building a Harness: Swappable Parts and a Good Evaluation System
+
+I've spent the last while building agent harnesses—some for very specific jobs, some meant to generalize across whatever you throw at them. Along the way I've torn apart a lot of other people's agents and harnesses too, trying to understand why some feel solid and others fall apart the moment you push on them. The conclusion I keep landing on is almost boringly simple:
+
+**A good harness needs two things: swappable parts and a good evaluation system. Everything else is detail.**
+
+That sounds reductive, so let me earn it. Most of the failures I've seen don't come from a bad model or a clever prompt that wasn't clever enough. They come from harnesses that fused their components together so tightly that you couldn't change one piece without breaking three others—and from teams that had no honest way to tell whether a change made things better or worse. You end up tuning by vibes. You ship something, it feels smarter on the three examples you tried, and then it quietly regresses on the long tail you never looked at.
+
+So before talking about architecture, I want to plant those two stakes in the ground, because they're the lens for everything that follows.
+
+## Why swappable parts
+
+The field moves too fast to commit. The best model today is not the best model next quarter. The retrieval trick everyone swears by gets replaced by a better one. If your harness hard-codes any single choice, you've built a thing with an expiration date.
+
+Swappability is really a bet about uncertainty. You don't know which model, which context strategy, which memory approach will win—so you build seams where those decisions live, and you make each decision cheap to reverse. The component behind the seam can be naive at first. What matters is that the seam exists, because the seam is what lets you improve later without a rewrite.
+
+The trap is over-abstracting. Swappable does not mean "infinitely configurable plugin framework for everything." It means the handful of decisions you genuinely expect to revisit get clean boundaries, and the rest stays concrete. Premature abstraction is just as deadly as premature coupling—it buries the actual logic under indirection nobody can reason about.
+
+## Why evaluation is the other half
+
+Swappable parts give you the ability to change things. Evaluation gives you the right to. Without it, every swap is a gamble dressed up as progress.
+
+A good eval system is what turns harness-building from craft into engineering. It's the difference between "this feels better" and "this is 12% better on the cases we care about and 3% worse on these two, and here's the tradeoff." It lets you swap a model and actually know. It catches the regressions that demos hide. It is, frankly, the least glamorous and most important piece, which is exactly why most people skimp on it.
+
+Evaluation and swappability also reinforce each other. Swappable parts are what make eval cheap to run—you can hold everything constant and vary one component. And good eval is what makes swapping safe—you're not flying blind. Build one without the other and you get either a rigid system you can measure or a flexible system you can't trust.
+
+## The building blocks
+
+With those two principles set, here are the components I keep rebuilding. Think of each one as a seam—a place where a decision lives and where a better decision can later be dropped in.
+
+**Model.** The obvious one. The reasoning core. The mistake is treating it as the whole harness rather than one swappable part of it. Pin yourself to a single model and your entire system inherits that model's ceiling, its quirks, and its pricing. Treat the model as a slot, not a foundation.
+
+**Model routing system.** Once the model is a slot, the natural next move is more than one slot. Different tasks want different models—a cheap fast one for classification and a heavy one for hard reasoning, or a long-context model only when context is actually long. Routing is the logic that picks. Done well it's invisible and saves you money and latency. Done badly it's a source of mysterious inconsistency. Either way it deserves to be its own component, not a pile of if-statements smeared across the codebase.
+
+**Context management and compression.** This is where a lot of harnesses quietly die. The context window is finite, attention degrades as it fills, and the naive approach—stuff everything in—stops working the moment a task runs long. You need a deliberate system for what gets included, what gets summarized, what gets dropped, and when. Compression is part of this: turning sprawling history into something dense enough to fit and faithful enough to stay useful. Get this wrong and the agent forgets what it was doing or drowns in its own transcript.
+
+**Tools.** The agent's hands. Tools are how a harness touches the world—reading files, running code, calling APIs. The design questions that matter are granularity (one mega-tool or many small ones), how errors are surfaced back to the model, and how much you trust the model to choose correctly. Tools are also a swappability seam: the same intent ("search the web") can be backed by different implementations without the agent caring.
+
+**Skills.** Reusable, task-specific instruction sets the harness can load when a job matches. I think of skills as the layer between raw tools and finished behavior—they encode *how* to do a class of task well, so you're not relying on the model to rediscover good process every time. They keep the base system lean by loading expertise on demand instead of cramming every workflow into one prompt.
+
+**MCPs.** The standardizing layer for connecting tools and data sources. The value isn't any single integration—it's that a shared protocol turns "every integration is bespoke" into "integrations plug into a known socket." That's swappability as a first-class design choice, made at the ecosystem level rather than reinvented per harness.
+
+**Knowledge bases and graphs.** Structured external knowledge the harness can draw on. Flat retrieval gets you a long way, but some problems are about relationships—how entities connect, how facts depend on each other—and that's where graphs earn their keep over plain chunk-and-embed. The component question is how knowledge is represented and queried, and whether your representation matches the shape of the problem.
+
+**Memory.** What persists across turns and across sessions. Memory is what separates a tool you re-explain yourself to every time from an assistant that accumulates context about you and your work. The hard parts are what to remember, when to recall it, and how to keep it from poisoning future runs with stale or wrong facts. Memory and context management are cousins—one is persistence across time, the other is selection within a moment—and they have to be designed to cooperate.
+
+**Harness loop logic.** The thing that ties it all together: the control flow that decides what happens each step. Plan then act, or act then reflect? When does the loop stop? How are errors recovered? How do all the other components get invoked in sequence? This is the conductor, and it's the piece least amenable to swapping wholesale—but it's where the personality and reliability of the whole system actually live.
+
+## How it fits together
+
+Lay those out and a picture emerges. The model and its router decide *who thinks*. Context management and memory decide *what they think about*. Tools, skills, MCPs, and knowledge bases decide *what they can do and draw on*. The loop logic decides *how it all unfolds over time*. Each one is a seam where a decision lives and a better decision can later move in.
+
+The reason to name them as distinct blocks isn't taxonomy for its own sake. It's that when something goes wrong—and it will—you want to localize the failure to a component instead of debugging a monolith. Did the agent fail because the model is weak, because the wrong context was selected, because a tool returned garbage, because memory fed it a stale fact, or because the loop gave up too early? A harness built from clean blocks lets you ask that question. A fused one just leaves you staring at a bad output with no thread to pull.
+
+## The takeaway
+
+If I had to compress all of this back down: build the seams, then build the scoreboard. Swappable parts keep you from betting the whole system on choices that won't age well. A real evaluation system is what lets you exercise that swappability with confidence instead of superstition. The building blocks above are just the natural places those seams want to go.
+
+You can have the fanciest components in the world, but without the ability to swap them and the means to measure them, you don't have a harness. You have a snapshot of one good guess, frozen in place, waiting to be outdated.
