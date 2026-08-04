@@ -12,11 +12,13 @@ div {
   padding: 10px;
   display: flex;
   color: #000000;
+  min-height: 96vh;
 }
 .fixed {
   padding: 10px;
   background-color: #fdcb6e;
-  max-width: 300px;
+  width: 120px;
+  min-width: 120px;
 }
 .fixedTwo {
   padding: 10px;
@@ -182,24 +184,23 @@ tr:nth-child(even) {
   border-radius: 3px;
   margin-left: 6px;
   vertical-align: middle;
+  color: #ffffff;
 }
 .tag-robotics {
-  background-color: #ff7675;
-  color: #ffffff;
+  background-color: #d45b57;
 }
 .tag-hardware {
-  background-color: #fdcb6e;
-  color: #000000;
+  background-color: #d4a83a;
 }
 .tag-web-app {
-  background-color: #74b9ff;
-  color: #000000;
+  background-color: #5a9fd4;
 }
 .tag-android {
-  background-color: #a29bfe;
-  color: #ffffff;
+  background-color: #8878b5;
 }
 .tag-blockchain {
-  background-color: #55efc4;
-  color: #000000;
+  background-color: #4bb892;
+}
+.tag-desktop-app {
+  background-color: #d48a3a;
 }
